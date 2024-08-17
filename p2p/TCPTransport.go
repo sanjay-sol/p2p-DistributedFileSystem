@@ -56,5 +56,6 @@ func (t *TCPTransport) startAcceptLoop() {
 }
 
 func (t *TCPTransport) handleConn(conn net.Conn) {
-	fmt.Printf("New incoming connection from %s\n", conn.RemoteAddr())
+	peer := NewTCPPeer(conn, true)
+	fmt.Printf("New incoming connection from %+v\n", peer)
 }

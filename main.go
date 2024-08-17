@@ -6,7 +6,10 @@ import (
 )
 
 func main() {
+	tr := p2p.NewTCPTransport(":3000")
+	if err := tr.ListenAndAccept(); err != nil {
+		fmt.Printf("In main Error in ListenAndAccept: %s\n", err)
+	}
 	fmt.Println("Hello ")
-
-  p2p.Prints()
+	select {}
 }

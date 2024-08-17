@@ -1,18 +1,18 @@
 package p2p
 
-import ( 
-  "net"
-  "fmt"
+import (
+	"fmt"
+	"net"
+	"sync"
 )
 
 type TCPTransport struct {
 	listenAddress string
-  listener net.Listener
-	peers map[net.Addr]Peer
+	listener      net.Listener
+	mu            sync.RWMutex
+	peers         map[net.Addr]Peer
 }
 
-
-func Prints()  {
-   fmt.Println("Transporter")
+func Prints() {
+	fmt.Println("Transporter")
 }
-

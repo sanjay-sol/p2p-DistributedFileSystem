@@ -25,13 +25,13 @@ type TCPTransportOptions struct {
 }
 type TCPTransport struct {
 	TCPTransportOptions
-	listener      net.Listener
+	listener net.Listener
 
 	mu    sync.RWMutex
 	peers map[net.Addr]Peer
 }
 
-func NewTCPTransport(opts TCPTransportOptions ) *TCPTransport {
+func NewTCPTransport(opts TCPTransportOptions) *TCPTransport {
 	return &TCPTransport{
 		TCPTransportOptions: opts,
 	}
@@ -61,7 +61,7 @@ func (t *TCPTransport) startAcceptLoop() {
 	}
 }
 
-type Temp struct{}
+// type Temp struct{}
 
 func (t *TCPTransport) handleConn(conn net.Conn) {
 	peer := NewTCPPeer(conn, true)
@@ -71,11 +71,19 @@ func (t *TCPTransport) handleConn(conn net.Conn) {
 		return
 	}
 
-	msg := &Temp{}
+	// msg := &Message{}
+	buf := make([]byte, 1024)
 	for {
-		if err := t.Decoder.Decode(conn, msg); err != nil {
-			fmt.Printf("Decode error: %s\n", err)
-			continue
+		n, err := conn.Read(buf)
+		if err != nil {
+			fmt.Printf("Read error: %s\n", err)
 		}
+		// if err := t.Decoder.Decode(conn, msg); err != nil {
+		// 	fmt.Printf("Decode error: %s\n", err)
+		// 	continue
+		// }
+
+		// fmt.Printf("Received message: %s\n", string(msg.Payload))
+		fmt.Printf("Received message: %s\n", string(buf[:n]))
 	}
 }

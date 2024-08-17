@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"fmt"
 	"net"
 	"sync"
 )
@@ -13,6 +12,11 @@ type TCPTransport struct {
 	peers         map[net.Addr]Peer
 }
 
-func Prints() {
-	fmt.Println("Transporter")
+func NewTCPTransport(listenAddr string) *TCPTransport {
+  return &TCPTransport{
+    listenAddress: listenAddr,
+  }
 }
+
+
+

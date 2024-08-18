@@ -3,7 +3,6 @@ package p2p
 import (
 	"fmt"
 	"net"
-	"sync"
 )
 
 type TCPPeer struct {
@@ -26,23 +25,22 @@ type TCPTransportOptions struct {
 	ListenAddr    string
 	HandshakeFunc HandshakeFunc
 	Decoder       Decoder
+	OnPeer        func(Peer) error
 }
 type TCPTransport struct {
 	TCPTransportOptions
 	listener net.Listener
-	rpcch chan RPC
-	mu    sync.RWMutex
-	peers map[net.Addr]Peer
+	rpcch    chan RPC
 }
 
 func NewTCPTransport(opts TCPTransportOptions) *TCPTransport {
 	return &TCPTransport{
 		TCPTransportOptions: opts,
-		rpcch: make(chan RPC),
+		rpcch:               make(chan RPC),
 	}
 }
 
-func (t *TCPTransport) Consume() <- chan RPC {
+func (t *TCPTransport) Consume() <-chan RPC {
 	return t.rpcch
 }
 
@@ -73,45 +71,37 @@ func (t *TCPTransport) startAcceptLoop() {
 // type Temp struct{}
 
 func (t *TCPTransport) handleConn(conn net.Conn) {
-	peer := NewTCPPeer(conn, true)
-	if err := t.HandshakeFunc(peer); err != nil {
+	var err error
+
+	defer func() {
+		fmt.Printf("Closing Peer connection %+v\n", err)
 		conn.Close()
-		fmt.Printf("TCP Handshake error: %s\n", err)
+	}()
+
+	peer := NewTCPPeer(conn, true)
+
+	if err = t.HandshakeFunc(peer); err != nil {
 		return
+	}
+
+	if t.OnPeer != nil {
+		if err = t.OnPeer(peer); err != nil {
+			return
+		}
 	}
 
 	rpc := RPC{}
 	// buf := make([]byte, 2000)
 	for {
-		// n, err := conn.Read(buf)
-
-		// if err != nil {
-		// 	fmt.Printf("TCP error: %s\n", err)
-		// }
-		// write some data to the connection
-		// _, err := conn.Write([]byte("Hello from server"))
-
-		// if err != nil {
-		// 	fmt.Printf("Write error: %s\n", err)
-		// 	continue
-		// }
-
-		// if err := t.Decoder.Decode(conn, msg); err != nil {
-		// 	fmt.Printf("Decode error: %s\n", err)
-		// 	continue
-		// }
-
-		// fmt.Printf("Received message: %s\n", string(msg.Payload))
-
-
-		if err := t.Decoder.Decode(conn, &rpc); err != nil {
-			fmt.Printf("Decode error: %s\n", err)
-			continue
+		err = t.Decoder.Decode(conn, &rpc)
+		if err != nil {
+			return
+			// fmt.Printf("Decode error: %s\n", err)
+			// continue
 		}
 
 		rpc.From = conn.RemoteAddr()
-		
+ 
 		t.rpcch <- rpc
 	}
 }
- 

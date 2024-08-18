@@ -18,6 +18,10 @@ func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	}
 }
 
+func (p *TCPPeer) Close() error {
+	return p.conn.Close()
+}
+
 type TCPTransportOptions struct {
 	ListenAddr    string
 	HandshakeFunc HandshakeFunc
@@ -26,7 +30,7 @@ type TCPTransportOptions struct {
 type TCPTransport struct {
 	TCPTransportOptions
 	listener net.Listener
-
+	rpcch chan RPC
 	mu    sync.RWMutex
 	peers map[net.Addr]Peer
 }
@@ -34,7 +38,12 @@ type TCPTransport struct {
 func NewTCPTransport(opts TCPTransportOptions) *TCPTransport {
 	return &TCPTransport{
 		TCPTransportOptions: opts,
+		rpcch: make(chan RPC),
 	}
+}
+
+func (t *TCPTransport) Consume() <- chan RPC {
+	return t.rpcch
 }
 
 func (t *TCPTransport) ListenAndAccept() error {
@@ -71,7 +80,7 @@ func (t *TCPTransport) handleConn(conn net.Conn) {
 		return
 	}
 
-	msg := &Message{}
+	rpc := RPC{}
 	// buf := make([]byte, 2000)
 	for {
 		// n, err := conn.Read(buf)
@@ -95,15 +104,14 @@ func (t *TCPTransport) handleConn(conn net.Conn) {
 		// fmt.Printf("Received message: %s\n", string(msg.Payload))
 
 
-		if err := t.Decoder.Decode(conn, msg); err != nil {
+		if err := t.Decoder.Decode(conn, &rpc); err != nil {
 			fmt.Printf("Decode error: %s\n", err)
 			continue
 		}
 
-		msg.From = conn.RemoteAddr()
+		rpc.From = conn.RemoteAddr()
 		
-		fmt.Printf("MEssage received from %s\n", msg.From)
-		fmt.Printf("Received message: %s\n", string(msg.Payload))
+		t.rpcch <- rpc
 	}
 }
  

@@ -13,6 +13,15 @@ func main() {
 		Decoder:       p2p.DefaultDecoder{},
 	}
 	tr := p2p.NewTCPTransport(tcpOpts)
+
+	go func() {
+		for {
+			msg := <-tr.Consume()
+			fmt.Printf("Received message: %s\n", string(msg.Payload))
+
+		}
+	}()
+
 	if err := tr.ListenAndAccept(); err != nil {
 		fmt.Printf("In main Error in ListenAndAccept: %s\n", err)
 	}
